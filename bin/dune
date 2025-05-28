@@ -1,0 +1,10 @@
+(executable
+ (public_name kagemusha)
+ (name main)
+ (libraries
+  jsonrpc
+  yojson
+  str
+  eio
+  eio_main
+  cmdliner))
