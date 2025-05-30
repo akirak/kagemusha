@@ -46,6 +46,9 @@
               eio
               eio_main
               jsonrpc
+              lsp
+              kcas
+              kcas_data
               cmdliner
               yojson
               ppx_yojson_conv_lib

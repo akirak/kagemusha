@@ -1,0 +1,7 @@
+(library
+ (name kagemusha_lsp)
+ (libraries
+   jsonrpc
+   yojson
+   str
+   eio))

@@ -1,7 +1,11 @@
 (executable
  (public_name kagemusha)
  (name main)
+ (modules
+  main
+  kagemusha)
  (libraries
+  kagemusha_lsp
   jsonrpc
   yojson
   str

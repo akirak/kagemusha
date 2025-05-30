@@ -1,0 +1,18 @@
+(executable
+ (public_name ranmaru)
+ (name main)
+ (modules
+  main
+  ranmaru
+  import)
+ (libraries
+  kagemusha_lsp
+  jsonrpc
+  lsp
+  kcas
+  kcas_data
+  yojson
+  str
+  eio
+  eio_main
+  cmdliner))

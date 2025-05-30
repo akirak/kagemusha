@@ -1,5 +1,5 @@
 (lang dune 3.18)
 
-(name kagemusha)
+(name bushido)
 
 (generate_opam_files true)
