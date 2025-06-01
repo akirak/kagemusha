@@ -1,3 +1,7 @@
+let tap f x =
+  f x;
+  x
+
 let lsp_message_split = Str.regexp "\r\n\r\n"
 
 let extract_lsp_message_body message_string =
@@ -13,6 +17,7 @@ let to_packet = function
 let write_packet flow packet =
   let json = Jsonrpc.Packet.yojson_of_t packet in
   let json_str = Yojson.Safe.to_string json in
+  Eio.traceln "writing a packet: %s" json_str;
   let content_length = String.length json_str in
   (* This function is only used for building the response to a shutdown
      request. With a CRLF appended to the entire message, Emacs lsp/eglot
@@ -27,6 +32,8 @@ let read_lsp_message flow =
   match Eio.Flow.single_read flow buffer with
   | bytes_read when bytes_read > 0 ->
       Cstruct.sub buffer 0 bytes_read
-      |> Cstruct.to_string |> extract_lsp_message_body
+      |> Cstruct.to_string
+      |> tap (Eio.traceln "read a message: %s")
+      |> extract_lsp_message_body
       |> Yojson.Safe.from_string |> Jsonrpc.Packet.t_of_yojson |> Option.some
   | _ -> Option.none

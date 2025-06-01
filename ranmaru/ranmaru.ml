@@ -19,6 +19,7 @@ let handle_client_incoming_messages ~incoming_channel ~client_socket
     ( match read_lsp_message client_socket with
     | Some packet -> handle_packet packet
     | None -> () ) ;
+    Eio.traceln "received a request/notification from the client";
     Eio.Fiber.yield () ; loop ()
   in
   loop ()
@@ -30,6 +31,7 @@ let handle_client_responses ~stream ~client_socket =
       | `Response response -> Jsonrpc.Packet.Response response
       | `Batch_response batch -> Jsonrpc.Packet.Batch_response batch
     in
+    Eio.traceln "written a response packet to the client";
     Kagemusha_lsp.write_packet client_socket packet ;
     Eio.Fiber.yield () ;
     loop ()
@@ -48,6 +50,7 @@ let translate_request ~id_translator request =
 
 let handle_client_packet ~server_socket ~id_translator ~init packet =
   let open Jsonrpc in
+  Eio.traceln "processing the client packet";
   match packet with
   | Packet.Request req -> (
     match req.method_ with
@@ -64,6 +67,7 @@ let handle_client_packet ~server_socket ~id_translator ~init packet =
           | Ok params -> Response.ok orig_id params
           | Error err -> Response.error orig_id err
         in
+        Eio.traceln "sending an initialization response";
         Immediate response
     | _ ->
         let new_request = translate_request ~id_translator req in
@@ -150,6 +154,7 @@ let run_gateway ~sw ~net ~server_sockaddr ~incoming_channel ~client_registry =
     ( match Kagemusha_lsp.read_lsp_message server_socket with
     | None -> ()
     | Some packet -> handle_response_packet packet ) ;
+    Eio.traceln "read a message from the server";
     Fiber.yield () ; server_response_loop ()
   in
   Fiber.all
