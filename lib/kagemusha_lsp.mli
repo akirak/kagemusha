@@ -1,4 +1,3 @@
-val extract_lsp_message_body : string -> string
 
 type message = Raw of Cstruct.t | Decoded of Jsonrpc.Packet.t
 

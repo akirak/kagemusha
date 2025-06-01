@@ -1,15 +1,9 @@
 let crlf_split = Str.regexp "\r\n"
 
-let lsp_message_split = Str.regexp "\r\n\r\n"
 
 exception Lsp_header_parse_error of string
 
-let extract_lsp_message_body message_string =
-  let index = Str.search_forward lsp_message_split message_string 0 in
-  Str.string_after message_string (index + 4)
-
 module Header = struct
-  (* content_type is unused *)
   type t = {content_length: int option}
 
   let lookup_opt key alist =
@@ -71,7 +65,6 @@ let write_packet flow packet =
   Eio.Flow.copy_string lsp_message flow
 
 module Reader = struct
-  (* type message_result = | Complete of (Header.t * string) *)
 
   let get_next_input flow =
     let buffer = Cstruct.create 4096 in
@@ -84,9 +77,6 @@ module Reader = struct
     | Partial of (Header.t option * string option)
     | Complete of (Jsonrpc.Packet.t * string option)
 
-  (* let parse_empty flow = let buffer = Buffer.create 4096 in match
-     Eio.Flow.single_read flow buffer with | bytes_read when bytes_read > 0
-     -> Cstruct.sub buffer 0 bytes_read |> Cstruct.to_string *)
 
   let parse_packet body =
     Yojson.Safe.from_string body |> Jsonrpc.Packet.t_of_yojson
