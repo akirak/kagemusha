@@ -11,6 +11,8 @@ let server_socket_path =
 let () =
   let doc = "Connect to a UNIX socket" in
   let info = Cmd.info "kagemusha" ~doc in
-  let cmd =  Cmd.v info Term.(const Kagemusha.run_proxy $ server_socket_path) in
+  let cmd =
+    Cmd.v info Term.(const Kagemusha.run_proxy $ server_socket_path)
+  in
   Printexc.record_backtrace true ;
   exit (Cmd.eval cmd)

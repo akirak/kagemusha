@@ -15,8 +15,7 @@ let handle_client_incoming_messages ~incoming_channel ~client_socket
     ( Stream.take packet_stream
     |> fun packet -> Stream.add incoming_channel (Packet (packet, client_id))
     ) ;
-    Eio.Fiber.yield () ;
-    loop ()
+    Eio.Fiber.yield () ; loop ()
   in
   Fiber.both loop (fun () ->
       Kagemusha_lsp.Reader.to_stream packet_stream client_socket )

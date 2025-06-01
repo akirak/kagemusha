@@ -69,7 +69,8 @@ let run_proxy server_sockaddr =
       try
         Fiber.all
           [ (fun () ->
-              Kagemusha_lsp.Reader.to_stream client_packet_stream (Stdenv.stdin env) )
+              Kagemusha_lsp.Reader.to_stream client_packet_stream
+                (Stdenv.stdin env) )
           ; process_client_packets
           ; redirect_server_responses
           ; process_responses ]

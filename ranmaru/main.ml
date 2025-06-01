@@ -6,10 +6,7 @@ let client_socket_path =
   let doc = "UNIX socket path to listen to" in
   Term.(
     const to_unix
-    $ Arg.(
-        required
-        & pos 0 (some string) None
-        & info [] ~docv:"CLIENT" ~doc ) )
+    $ Arg.(required & pos 0 (some string) None & info [] ~docv:"CLIENT" ~doc) )
 
 let server_socket_path =
   let doc = "UNIX socket path of the upstream server" in

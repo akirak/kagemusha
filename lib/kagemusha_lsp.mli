@@ -1,4 +1,3 @@
-
 type message = Raw of Cstruct.t | Decoded of Jsonrpc.Packet.t
 
 val to_packet :

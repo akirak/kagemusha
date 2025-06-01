@@ -9,8 +9,7 @@ module Client_registry = struct
 
   type t =
     { id_counter: Id.t Kcas.Loc.t
-    ; stream_tbl:
-        (Id.t, response_packet Eio.Stream.t) Kcas_data.Hashtbl.t }
+    ; stream_tbl: (Id.t, response_packet Eio.Stream.t) Kcas_data.Hashtbl.t }
 
   let make () =
     { id_counter= Kcas.Loc.make 0
