@@ -1,0 +1,38 @@
+name: Build the Nix package
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'README.*'
+
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - 'README.*'
+
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          # - ubuntu-24.04-arm
+          - macos-latest
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+
+      - name: Set up Nix
+        uses: ./.github/actions/setup
+        with:
+          cachix-token: ${{ secrets.CACHIX_AUTH_TOKEN }}
+
+      - name: Check the flake
+        run: nix flake check -L --option keep-going true
