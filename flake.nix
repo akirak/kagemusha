@@ -27,38 +27,47 @@
         );
     in
     {
-      packages = eachSystem (
-        pkgs: with pkgs; {
-          default = ocamlPackages.buildDunePackage {
-            pname = "kagemusha";
-            version = "0";
-            duneVersion = "3";
-            src = self.outPath;
+      packages = eachSystem (pkgs: {
+        kagemusha = pkgs.ocamlPackages.buildDunePackage {
+          pname = "kagemusha";
+          version = "0";
+          duneVersion = "3";
+          src = ./.;
+          buildInputs = [ pkgs.ocamlPackages.ocaml-syntax-shims ];
+          propagatedBuildInputs = with pkgs.ocamlPackages; [
+            eio
+            eio_main
+            jsonrpc
+            cmdliner
+            yojson
+          ];
+        };
 
-            # Uncomment if you need the executable of dream_eml during build
-            # nativeBuildInputs = [
-            #   ocamlPackages.dream
-            # ];
-
-            buildInputs = with ocamlPackages; [ ocaml-syntax-shims ];
-
-            propagatedBuildInputs = with ocamlPackages; [
-              eio
-              eio_main
-              jsonrpc
-              lsp
-              kcas
-              kcas_data
-              cmdliner
-              yojson
-            ];
-          };
-        }
-      );
+        ranmaru = pkgs.ocamlPackages.buildDunePackage {
+          pname = "ranmaru";
+          version = "0";
+          duneVersion = "3";
+          src = ./.;
+          buildInputs = [ pkgs.ocamlPackages.ocaml-syntax-shims ];
+          propagatedBuildInputs = with pkgs.ocamlPackages; [
+            eio
+            eio_main
+            jsonrpc
+            lsp
+            kcas
+            kcas_data
+            cmdliner
+            yojson
+          ];
+        };
+      });
 
       devShells = eachSystem (pkgs: {
         default = pkgs.mkShell {
-          inputsFrom = [ self.packages.${pkgs.system}.default ];
+          inputsFrom = with self.packages.${pkgs.system}; [
+            kagemusha
+            ranmaru
+          ];
           packages = (
             with pkgs.ocamlPackages;
             [
@@ -69,6 +78,10 @@
             ]
           );
         };
+      });
+
+      checks = eachSystem (pkgs: {
+        inherit (self.packages.${pkgs.system}) kagemusha ranmaru;
       });
     };
 }

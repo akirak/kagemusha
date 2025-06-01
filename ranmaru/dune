@@ -1,4 +1,5 @@
 (executable
+ (package ranmaru)
  (public_name ranmaru)
  (name main)
  (modules

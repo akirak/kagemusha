@@ -6,6 +6,9 @@ depends: [
   "eio"
   "eio_main"
   "jsonrpc"
+  "lsp"
+  "kcas"
+  "kcas_data"
   "cmdliner"
   "yojson"
   "odoc" {with-doc}

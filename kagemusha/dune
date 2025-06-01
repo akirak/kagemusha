@@ -1,4 +1,5 @@
 (executable
+ (package kagemusha)
  (public_name kagemusha)
  (name main)
  (modules
