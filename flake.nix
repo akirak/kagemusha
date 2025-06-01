@@ -51,7 +51,6 @@
               kcas_data
               cmdliner
               yojson
-              ppx_yojson_conv_lib
             ];
           };
         }
