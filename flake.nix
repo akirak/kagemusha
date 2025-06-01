@@ -1,6 +1,10 @@
 {
   inputs = {
     nixpkgs.url = "github:nix-ocaml/nix-overlays";
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
@@ -8,7 +12,7 @@
       nixpkgs,
       self,
       ...
-    }:
+    }@inputs:
     let
       eachSystem =
         f:
@@ -25,6 +29,20 @@
             )
           )
         );
+
+      treefmtEval = eachSystem (
+        pkgs:
+        inputs.treefmt-nix.lib.evalModule pkgs {
+          projectRootFile = "flake.nix";
+
+          # You can add formatters for your languages.
+          # See https://github.com/numtide/treefmt-nix#supported-programs
+
+          programs.ocamlformat.enable = true;
+          programs.nixfmt.enable = true;
+          programs.actionlint.enable = true;
+        }
+      );
     in
     {
       packages = eachSystem (pkgs: {
@@ -80,7 +98,10 @@
         };
       });
 
+      formatter = eachSystem (pkgs: treefmtEval.${pkgs.system}.config.build.wrapper);
+
       checks = eachSystem (pkgs: {
+        format = treefmtEval.${pkgs.system}.config.build.check self;
         inherit (self.packages.${pkgs.system}) kagemusha ranmaru;
       });
     };
