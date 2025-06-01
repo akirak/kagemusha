@@ -78,7 +78,7 @@ packages:
 
 If you're not using Nix, use Dune to build the programs from source.
 
-# Kagemusha (影武者)
+# Kagemusha (KAH-geh-moo-shah, 影武者)
 
 > "Shadow warrior" – a political decoy who takes the place of a powerful figure
 > to protect them or preserve the illusion of continuity.
@@ -101,7 +101,7 @@ Arguments:
 - `SOCKET` is the path to the UNIX domain socket of an LSP server (typically the
 `CLIENT` socket of `ranmaru`).
 
-# Ranmaru (蘭丸)
+# Ranmaru (RAHN-mah-roo, 蘭丸)
 
 *Mori Ranmaru* (森蘭丸) was a retainer to *Oda Nobunaga* (織田信長). He was a
 loyal servant to his master, and they died on the same day when they were
