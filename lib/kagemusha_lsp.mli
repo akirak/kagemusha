@@ -9,5 +9,9 @@ val to_packet :
 val write_packet :
   [> Eio.Flow.sink_ty] Eio.Resource.t -> Jsonrpc.Packet.t -> unit
 
-val read_lsp_message :
-  [> Eio.Flow.source_ty] Eio.Resource.t -> Jsonrpc.Packet.t option
+module Reader : sig
+  val to_stream :
+       Jsonrpc.Packet.t Eio.Stream.t
+    -> [> Eio.Flow.source_ty] Eio.Resource.t
+    -> unit
+end

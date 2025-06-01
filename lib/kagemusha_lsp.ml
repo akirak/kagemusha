@@ -1,12 +1,55 @@
-let tap f x =
-  f x;
-  x
+let crlf_split = Str.regexp "\r\n"
 
 let lsp_message_split = Str.regexp "\r\n\r\n"
+
+exception Lsp_header_parse_error of string
 
 let extract_lsp_message_body message_string =
   let index = Str.search_forward lsp_message_split message_string 0 in
   Str.string_after message_string (index + 4)
+
+module Header = struct
+  (* content_type is unused *)
+  type t = {content_length: int option}
+
+  let lookup_opt key alist =
+    match
+      List.find_opt
+        (fun (k, _) -> String.lowercase_ascii k = String.lowercase_ascii key)
+        alist
+    with
+    | Some (_, v) -> Some v
+    | None -> None
+
+  let parse_header_line line =
+    let index = Str.search_forward (Str.regexp ":") line 0 in
+    let key = Str.string_before line index in
+    let value = Str.string_after line (index + 1) in
+    (key, String.trim value)
+
+  let parse_message string =
+    let rec loop headers n =
+      match Str.search_forward crlf_split string n with
+      | index when index = n -> (headers, Str.string_after string (n + 2))
+      | index ->
+          let line = String.sub string n (index - n) in
+          loop (parse_header_line line :: headers) (index + 2)
+    in
+    let fields, body = loop [] 0 in
+    let content_type = lookup_opt "content-type" fields in
+    let content_length =
+      match
+        lookup_opt "content-length" fields |> Option.map int_of_string_opt
+      with
+      | Some (Some length) -> Some length
+      | None -> None
+      | Some None ->
+          raise (Lsp_header_parse_error "invalid content-length value")
+    in
+    if Option.is_some content_length || Option.is_some content_type then
+      ({content_length}, body)
+    else raise (Lsp_header_parse_error "empty header")
+end
 
 type message = Raw of Cstruct.t | Decoded of Jsonrpc.Packet.t
 
@@ -17,7 +60,7 @@ let to_packet = function
 let write_packet flow packet =
   let json = Jsonrpc.Packet.yojson_of_t packet in
   let json_str = Yojson.Safe.to_string json in
-  Eio.traceln "writing a packet: %s" json_str;
+  Eio.traceln "writing a packet: %s" json_str ;
   let content_length = String.length json_str in
   (* This function is only used for building the response to a shutdown
      request. With a CRLF appended to the entire message, Emacs lsp/eglot
@@ -27,13 +70,79 @@ let write_packet flow packet =
   in
   Eio.Flow.copy_string lsp_message flow
 
-let read_lsp_message flow =
-  let buffer = Cstruct.create 4096 in
-  match Eio.Flow.single_read flow buffer with
-  | bytes_read when bytes_read > 0 ->
-      Cstruct.sub buffer 0 bytes_read
-      |> Cstruct.to_string
-      |> tap (Eio.traceln "read a message: %s")
-      |> extract_lsp_message_body
-      |> Yojson.Safe.from_string |> Jsonrpc.Packet.t_of_yojson |> Option.some
-  | _ -> Option.none
+module Reader = struct
+  (* type message_result = | Complete of (Header.t * string) *)
+
+  let get_next_input flow =
+    let buffer = Cstruct.create 4096 in
+    match Eio.Flow.single_read flow buffer with
+    | bytes_read when bytes_read > 0 ->
+        Some (Cstruct.sub buffer 0 bytes_read |> Cstruct.to_string)
+    | _ -> None
+
+  type state =
+    | Partial of (Header.t option * string option)
+    | Complete of (Jsonrpc.Packet.t * string option)
+
+  (* let parse_empty flow = let buffer = Buffer.create 4096 in match
+     Eio.Flow.single_read flow buffer with | bytes_read when bytes_read > 0
+     -> Cstruct.sub buffer 0 bytes_read |> Cstruct.to_string *)
+
+  let parse_packet body =
+    Yojson.Safe.from_string body |> Jsonrpc.Packet.t_of_yojson
+
+  let try_parse_header prev_input string =
+    let full_string =
+      match prev_input with
+      | Some prev_string -> prev_string ^ string
+      | None -> string
+    in
+    Eio.traceln "processing input: %s" full_string ;
+    match Header.parse_message full_string with
+    | header, body -> (
+      match header.content_length with
+      | _ when String.length body = 0 -> Partial (Some header, None)
+      | None -> Complete (parse_packet body, None)
+      | Some length when String.length body < length ->
+          Partial (Some header, Some body)
+      | Some length when String.length body = length ->
+          Complete (parse_packet body, None)
+      | Some length ->
+          Complete
+            ( parse_packet (Str.string_before body length)
+            , Some (Str.string_after body length) ) )
+
+  let rec loop1 flow opt_header opt_string =
+    let open Header in
+    match get_next_input flow with
+    | None ->
+        Eio.Fiber.yield () ;
+        loop1 flow opt_header opt_string
+    | Some string -> (
+      match opt_header with
+      | None -> (
+        match try_parse_header opt_string string with
+        | Partial (header, body) ->
+            Eio.Fiber.yield () ; loop1 flow header body
+        | Complete (packet, rest) -> (packet, rest) )
+      | Some {content_length= None} -> (parse_packet string, None)
+      | Some {content_length= Some length} when String.length string < length
+        ->
+          Eio.Fiber.yield () ;
+          loop1 flow opt_header (Some string)
+      | Some {content_length= Some length} when String.length string = length
+        ->
+          (parse_packet string, None)
+      | Some {content_length= Some length} ->
+          ( parse_packet (Str.string_before string length)
+          , Some (Str.string_after string length) ) )
+
+  let to_stream stream flow =
+    let rec loop opt_string =
+      let packet, rest = loop1 flow None opt_string in
+      Eio.Stream.add stream packet ;
+      Eio.Fiber.yield () ;
+      loop rest
+    in
+    loop None
+end

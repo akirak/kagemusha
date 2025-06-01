@@ -1,19 +1,3 @@
-let handle_packets ~input ~f =
-  let rec loop () =
-    let buffer = Cstruct.create 4096 in
-    match Eio.Flow.single_read input buffer with
-    | bytes_read when bytes_read > 0 ->
-        let sub = Cstruct.sub buffer 0 bytes_read in
-        let string = Cstruct.to_string sub in
-        Kagemusha_lsp.extract_lsp_message_body string
-        |> Yojson.Safe.from_string |> Jsonrpc.Packet.t_of_yojson
-        |> f ~buffer:sub ;
-        Eio.Fiber.yield () ;
-        loop ()
-    | _ -> Eio.Fiber.yield () ; loop ()
-  in
-  try loop () with End_of_file -> ()
-
 let is_shutdown_request (req : Jsonrpc.Request.t) =
   match req.method_ with "shutdown" -> true | _ -> false
 
@@ -44,7 +28,7 @@ let run_proxy server_sockaddr =
       let stdout = Stdenv.stdout env in
       let net = Stdenv.net env in
       let server_socket = Net.connect ~sw net server_sockaddr in
-      let handle_client_packets ~buffer packet =
+      let handle_client_packets packet =
         match packet with
         | Jsonrpc.Packet.Request req when is_shutdown_request req ->
             Jsonrpc.Response.ok req.id `Null
@@ -56,7 +40,13 @@ let run_proxy server_sockaddr =
         | Jsonrpc.Packet.Batch_call calls ->
             let redirected, _ = mangle_batch_call calls in
             Seq.iter (write_packet server_socket) redirected
-        | _ -> Flow.write server_socket [buffer]
+        | _ -> write_packet server_socket packet
+      in
+      let client_packet_stream = Eio.Stream.create 2 in
+      let rec process_client_packets () =
+        Stream.take client_packet_stream |> handle_client_packets ;
+        Fiber.yield () ;
+        process_client_packets ()
       in
       let rec process_responses () =
         ( match Stream.take response_stream with
@@ -79,8 +69,8 @@ let run_proxy server_sockaddr =
       try
         Fiber.all
           [ (fun () ->
-              handle_packets ~input:(Stdenv.stdin env)
-                ~f:handle_client_packets )
+              Kagemusha_lsp.Reader.to_stream client_packet_stream (Stdenv.stdin env) )
+          ; process_client_packets
           ; redirect_server_responses
           ; process_responses ]
       with Lsp_exit -> () )
