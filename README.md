@@ -107,7 +107,7 @@ Arguments:
 loyal servant to his master, and they died on the same day when they were
 surrounded by rebels, without allowing the rebels to find their bodies.
 
-![Ranmaru Mori painting. Art by Utagawa Kuniyoshi (ca.1850) from the TAIHEIKI EIYUDEN](./ranmaru.jpg)
+![Ranmaru Mori painting. Art by Utagawa Kuniyoshi (ca.1850) from the TAIHEIKI EIYUDEN](./assets/ranmaru.jpg)
 
 <!-- The above image is in the public domain. See https://en.wikipedia.org/wiki/Mori_Ranmaru#/media/File:Mori_Ranmaru-Utagawa_Kuniyoshi-ca.1850-_from_TAIHEIKI_EIYUDEN.jpg -->
 
