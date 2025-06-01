@@ -15,7 +15,6 @@ let handle_client_incoming_messages ~incoming_channel ~client_socket
     ( Stream.take packet_stream
     |> fun packet -> Stream.add incoming_channel (Packet (packet, client_id))
     ) ;
-    Eio.traceln "received a request/notification from the client" ;
     Eio.Fiber.yield () ;
     loop ()
   in
@@ -29,7 +28,6 @@ let handle_client_responses ~stream ~client_socket =
       | `Response response -> Jsonrpc.Packet.Response response
       | `Batch_response batch -> Jsonrpc.Packet.Batch_response batch
     in
-    Eio.traceln "written a response packet to the client" ;
     Kagemusha_lsp.write_packet client_socket packet ;
     Eio.Fiber.yield () ;
     loop ()
@@ -48,7 +46,6 @@ let translate_request ~id_translator request =
 
 let handle_client_packet ~server_socket ~id_translator ~init packet =
   let open Jsonrpc in
-  Eio.traceln "processing the client packet" ;
   match packet with
   | Packet.Request req -> (
     match req.method_ with
@@ -65,7 +62,6 @@ let handle_client_packet ~server_socket ~id_translator ~init packet =
           | Ok params -> Response.ok orig_id params
           | Error err -> Response.error orig_id err
         in
-        Eio.traceln "sending an initialization response" ;
         Immediate response
     | _ ->
         let new_request = translate_request ~id_translator req in
@@ -99,7 +95,6 @@ let run_gateway ~sw ~net ~server_sockaddr ~incoming_channel ~client_registry
   let client_map = Client_map.make () in
   (* This [server_socket] must be only accessed from [send_to_server]. *)
   let server_socket = Net.connect ~sw net server_sockaddr in
-  Eio.traceln "connected to the server" ;
   let init = Initializer.make () in
   let respond = Client_registry.send client_registry in
   let handle_client_message = function
@@ -152,7 +147,6 @@ let run_gateway ~sw ~net ~server_sockaddr ~incoming_channel ~client_registry
   let response_stream = Stream.create 2 in
   let rec server_response_loop () =
     Stream.take response_stream |> handle_response_packet ;
-    Eio.traceln "read a message from the server" ;
     Fiber.yield () ;
     server_response_loop ()
   in
@@ -174,7 +168,6 @@ let run_proxy ~client_sockaddr ~server_sockaddr =
       let handle_error _exn = () in
       let client_registry = Client_registry.make () in
       let client_handler client_socket _addr =
-        Eio.traceln "accepted a client connection" ;
         let client_id, stream = Client_registry.register client_registry in
         Fiber.both
           (fun () ->
@@ -182,7 +175,6 @@ let run_proxy ~client_sockaddr ~server_sockaddr =
               ~client_id )
           (fun () -> handle_client_responses ~stream ~client_socket)
       in
-      Eio.traceln "started the server" ;
       Fiber.all
         [ (fun () ->
             run_gateway ~sw ~net ~server_sockaddr ~incoming_channel

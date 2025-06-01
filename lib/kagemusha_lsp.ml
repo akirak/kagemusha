@@ -54,7 +54,6 @@ let to_packet = function
 let write_packet flow packet =
   let json = Jsonrpc.Packet.yojson_of_t packet in
   let json_str = Yojson.Safe.to_string json in
-  Eio.traceln "writing a packet: %s" json_str ;
   let content_length = String.length json_str in
   (* This function is only used for building the response to a shutdown
      request. With a CRLF appended to the entire message, Emacs lsp/eglot
@@ -87,7 +86,6 @@ module Reader = struct
       | Some prev_string -> prev_string ^ string
       | None -> string
     in
-    Eio.traceln "processing input: %s" full_string ;
     match Header.parse_message full_string with
     | header, body -> (
       match header.content_length with
