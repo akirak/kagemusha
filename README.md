@@ -1,4 +1,4 @@
-# ranmaru: A LSP Proxy to Keep the Master Alive 
+# ranmaru: An LSP Proxy to Keep the Master Alive
 
 <img src="./assets/ranmaru.jpg" alt="Ranmaru Mori painting. Art by Utagawa Kuniyoshi (ca.1850) from the TAIHEIKI EIYUDEN" align="right" width="300">
 
