@@ -3,18 +3,6 @@
 (generate_opam_files true)
 
 (package
- (name kagemusha)
- (allow_empty)
- (depends
-  (ocaml (>= 5.2))
-  (dune (>= 3.16))
-   eio
-   eio_main
-   jsonrpc
-   cmdliner
-   yojson))
-
-(package
  (name ranmaru)
  (allow_empty)
  (depends

@@ -46,21 +46,6 @@
     in
     {
       packages = eachSystem (pkgs: {
-        kagemusha = pkgs.ocamlPackages.buildDunePackage {
-          pname = "kagemusha";
-          version = "0";
-          duneVersion = "3";
-          src = ./.;
-          buildInputs = [ pkgs.ocamlPackages.ocaml-syntax-shims ];
-          propagatedBuildInputs = with pkgs.ocamlPackages; [
-            eio
-            eio_main
-            jsonrpc
-            cmdliner
-            yojson
-          ];
-        };
-
         ranmaru = pkgs.ocamlPackages.buildDunePackage {
           pname = "ranmaru";
           version = "0";
@@ -83,7 +68,6 @@
       devShells = eachSystem (pkgs: {
         default = pkgs.mkShell {
           inputsFrom = with self.packages.${pkgs.system}; [
-            kagemusha
             ranmaru
           ];
           packages = (
@@ -102,7 +86,7 @@
 
       checks = eachSystem (pkgs: {
         format = treefmtEval.${pkgs.system}.config.build.check self;
-        inherit (self.packages.${pkgs.system}) kagemusha ranmaru;
+        inherit (self.packages.${pkgs.system}) ranmaru;
       });
     };
 }
