@@ -19,7 +19,9 @@ let server_socket_path =
 
 let () =
   Printexc.record_backtrace true ;
-  let doc = "Maintain connections to a LSP socket" in
+  let doc =
+    "LSP proxy that handles shutdown/exit and manages multiple clients"
+  in
   let info = Cmd.info "ranmaru" ~doc in
   let f client_sockaddr server_sockaddr =
     Ranmaru.run_proxy ~client_sockaddr ~server_sockaddr

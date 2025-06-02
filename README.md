@@ -1,8 +1,12 @@
-# A Proxy System for Long-Running LSP Servers
+# ranmaru: A LSP Proxy to Keep the Master Alive 
 
-This repository includes two proxy server programs for the Language Server
-Protocol (LSP): *kagemusha* and *ranmaru*. By combining these programs, you can
-connect multiple clients to a single long-running LSP server instance.
+<img src="./assets/ranmaru.jpg" alt="Ranmaru Mori painting. Art by Utagawa Kuniyoshi (ca.1850) from the TAIHEIKI EIYUDEN" align="right" width="300">
+
+<!-- The above image is in the public domain. See https://en.wikipedia.org/wiki/Mori_Ranmaru#/media/File:Mori_Ranmaru-Utagawa_Kuniyoshi-ca.1850-_from_TAIHEIKI_EIYUDEN.jpg -->
+
+*Ranmaru* (RAHN-mah-roo, 蘭丸) is an LSP proxy that allows multiple clients
+to connect to a single long-running LSP server instance while handling
+shutdown and exit requests gracefully.
 
 Why is this important? Typical language server SDKs such as
 [vscode-languageserver](https://github.com/Microsoft/vscode-languageserver-node)
@@ -14,9 +18,15 @@ limitation when you want to develop a program that serves as an LSP server but a
 provides other services such as the Model Context Protocol (MCP), because LSP
 client disconnection terminates the entire program.
 
-With *kagemusha* and *ranmaru*, this will no longer be the case. You can develop
+With *ranmaru*, this will no longer be the case. You can develop
 a long-running multi-role server that accepts connections from multiple clients
 using any of the standard SDKs for developing language servers.
+
+> [!IMPORTANT]
+> In Japanese history, *Mori Ranmaru* (森蘭丸) was a retainer to *Oda Nobunaga*
+> (織田信長). He was a loyal servant to his master, and they died on the same day
+> when they were surrounded by rebels, without allowing the rebels to find their
+> bodies.
 
 ## How it works
 
@@ -27,101 +37,52 @@ using any of the standard SDKs for developing language servers.
 > transports such as TCP sockets and stdio, but this would be less suitable for
 > the intended use cases.
 
-In a typical scenario, *kagemusha* directly interfaces with the LSP client, while
-*ranmaru* runs alongside the master LSP server. When the client tries
-to kill the LSP server by sending a shutdown request and an exit notification,
-*kagemusha* blocks these messages and dies on behalf of the master. Meanwhile,
-*ranmaru* sits in front of the master server and behaves as a client to
-the server. It stays alive, so the watchdog won't detect any death activity,
-allowing the master to continue providing services.
+*Ranmaru* acts as a reverse proxy that accepts multiple client connections over
+UNIX domain sockets and forwards them to a master LSP server. It handles shutdown
+requests and exit notifications locally without forwarding them to the master
+server, ensuring the master server stays alive. It also survives client
+disconnections and manages JSON-RPC message ID translation to avoid conflicts
+between multiple clients.
 
 ```mermaid
 sequenceDiagram
     participant Client as LSP Client
-    participant K as kagemusha
     participant R as ranmaru
     participant Server as Master LSP Server
 
     Note over Client,Server: Normal LSP Communication
-    Client->>K: LSP Request (stdio)
-    K->>R: LSP Request (UNIX socket)
+    Client->>R: LSP Request (UNIX socket)
     R->>Server: LSP Request (UNIX socket)
     Server->>R: LSP Response
-    R->>K: LSP Response
-    K->>Client: LSP Response (stdio)
+    R->>Client: LSP Response (UNIX socket)
 
     Note over Client,Server: Client Shutdown Sequence
-    Client->>K: shutdown request
-    K->>Client: shutdown response
+    Client->>R: shutdown request
+    Note over R: Handles locally
+    R->>Client: shutdown response
 
-    Client->>K: exit notification
-    Note over K: Blocks exit notification
-    Note over K: Dies on behalf of master
-    K--xK: Process exits
+    Client->>R: exit notification
+    Note over R: Handles locally, doesn't forward
+    Note over R: Client disconnects
 
-    Note over R,Server: ranmaru keeps connection alive
-    R->>Server: (continues running)
-    Note over Server: Master server stays alive
+    Note over R,Server: ranmaru and master stay alive
+    R->>Server: (continues connection)
 ```
 
 ## Prerequisites
 
-Both *kagemusha* and *ranmaru* are written in OCaml 5 and packaged with Nix.
-They should run on UNIX-like systems (e.g., Linux and macOS).
+*Ranmaru* is written in OCaml 5 and packaged with Nix.
+It should run on UNIX-like systems (e.g., Linux and macOS).
 
-If you're using Nix flakes, you can install the programs through the following
-packages:
+If you're using Nix flakes, you can install the program through:
 
-- `github:akirak/kagemusha#kagemusha` for `kagemusha`
 - `github:akirak/kagemusha#ranmaru` for `ranmaru`
 
-If you're not using Nix, use Dune to build the programs from source.
-
-# Kagemusha (KAH-geh-moo-shah, 影武者)
-
-> "Shadow warrior" – a political decoy who takes the place of a powerful figure
-> to protect them or preserve the illusion of continuity.
-
-> [!IMPORTANT]
-> Also check out [the film of the same
-> title](https://www.rottentomatoes.com/m/kagemusha) 🍅, directed by the
-> legendary Akira Kurosawa (a different Akira K).
-
-`kagemusha` is a forward LSP proxy that prevents shutdown requests and exit
-notifications from being sent to the upstream server. It provides the common stdio
-interface to communicate with the client and connects to the server over a UNIX
-domain (stream) socket.
+If you're not using Nix, use Dune to build the program from source.
 
 ## Usage
 
-Connect to a UNIX socket server and interact with the client via stdin:
-
-``` shell
-kagemusha SOCKET
-```
-
-Arguments:
-
-- `SOCKET` is the path to the UNIX domain socket of an LSP server (typically the
-`CLIENT` socket of `ranmaru`).
-
-# Ranmaru (RAHN-mah-roo, 蘭丸)
-
-*Mori Ranmaru* (森蘭丸) was a retainer to *Oda Nobunaga* (織田信長). He was a
-loyal servant to his master, and they died on the same day when they were
-surrounded by rebels, without allowing the rebels to find their bodies.
-
-![Ranmaru Mori painting. Art by Utagawa Kuniyoshi (ca.1850) from the TAIHEIKI EIYUDEN](./assets/ranmaru.jpg)
-
-<!-- The above image is in the public domain. See https://en.wikipedia.org/wiki/Mori_Ranmaru#/media/File:Mori_Ranmaru-Utagawa_Kuniyoshi-ca.1850-_from_TAIHEIKI_EIYUDEN.jpg -->
-
-`ranmaru` is a reverse LSP proxy that accepts connections from multiple clients
-over a UNIX domain socket. It survives across client disconnections and
-also translates JSON-RPC message IDs to avoid conflicts.
-
-## Usage
-
-Pipe LSP messages between two UNIX sockets:
+Accept connections from multiple clients and forward to a master server:
 
 ``` shell
 ranmaru CLIENT SERVER
@@ -129,7 +90,50 @@ ranmaru CLIENT SERVER
 
 Arguments:
 
-- `CLIENT` is the path to the UNIX domain socket that `ranmaru` listens on. It
+- `CLIENT` is the path to the UNIX domain socket that ranmaru listens on. It
   should not exist.
 - `SERVER` is the path to the UNIX domain socket of the master LSP server. It must
-  exist before `ranmaru` starts.
+  exist before ranmaru starts.
+
+## Configuration examples for LSP clients
+
+### Emacs Eglot
+
+Eglot can connect to ranmaru via UNIX domain sockets. This configuration creates
+a reusable connection that survives across eglot connection shutdowns and/or
+Emacs restarts:
+
+``` emacs-lisp
+(defcustom my/ranmaru-socket-path "/tmp/ranmaru-client.sock"
+  "Path to the UNIX socket that ranmaru listens on for client connections."
+  :type 'string
+  :group 'eglot)
+
+(defvar my/ranmaru-socket-process nil
+  "The current socket process connection to ranmaru.")
+
+(defun my/ranmaru-eglot-contact (_interactive _project)
+  "Create or reuse a UNIX socket connection to ranmaru for Eglot.
+This function maintains a persistent connection that can be shared
+across multiple Eglot sessions."
+  (unless (and my/ranmaru-socket-process
+               (process-live-p my/ranmaru-socket-process))
+    (setq my/ranmaru-socket-process
+          (make-network-process :name "ranmaru-eglot"
+                                :buffer nil
+                                :family 'local
+                                :service my/ranmaru-socket-path
+                                :nowait t)))
+  (list 'eglot-lsp-server :process my/ranmaru-socket-process))
+
+;; Example configuration for a specific mode
+(add-to-list 'eglot-server-programs '(python-mode . my/ranmaru-eglot-contact))
+```
+
+Here are steps:
+
+1. Start your master LSP server with UNIX socket support (e.g., on
+   `/tmp/master-lsp.sock`)
+2. Start ranmaru: `ranmaru /tmp/ranmaru-client.sock /tmp/master-lsp.sock`
+3. Configure Eglot as shown above
+4. Use `M-x eglot` normally in your source files

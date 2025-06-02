@@ -2,6 +2,17 @@ open Import
 
 let max_connections = 5
 
+(* Shutdown/exit handling functions *)
+let is_shutdown_request (req : Jsonrpc.Request.t) =
+  match req.method_ with "shutdown" -> true | _ -> false
+
+let is_exit_notification (notification : Jsonrpc.Notification.t) =
+  match notification.method_ with "exit" -> true | _ -> false
+
+let is_unredirected_batch_item = function
+  | `Request req -> is_shutdown_request req
+  | `Notification notification -> is_exit_notification notification
+
 type channel_message =
   | Connect
   | Packet of (Jsonrpc.Packet.t * Client_registry.Id.t)
@@ -43,7 +54,8 @@ let translate_request ~id_translator request =
   let new_id = Id_translator.translate id_translator request.id in
   {request with id= new_id}
 
-let handle_client_packet ~server_socket ~id_translator ~init packet =
+let handle_client_packet ~server_socket ~id_translator ~initialized ~init
+    packet =
   let open Jsonrpc in
   match packet with
   | Packet.Request req -> (
@@ -62,14 +74,33 @@ let handle_client_packet ~server_socket ~id_translator ~init packet =
           | Error err -> Response.error orig_id err
         in
         Immediate response
+    | "shutdown" ->
+        (* Handle shutdown request locally - don't forward to master
+           server *)
+        let response = Response.ok req.id `Null in
+        Immediate response
     | _ ->
         let new_request = translate_request ~id_translator req in
         Kagemusha_lsp.write_packet server_socket (Packet.Request new_request) ;
         Wait [new_request.id] )
-  | Packet.Notification _ ->
-      Kagemusha_lsp.write_packet server_socket packet ;
-      Done
+  | Packet.Notification notification -> (
+    match notification.method_ with
+    | "exit" ->
+        (* Handle exit notification locally - don't forward to master server
+           and don't kill ranmaru *)
+        Done
+    | "initialized" ->
+        if Kcas.Loc.compare_and_set initialized false true then
+          Kagemusha_lsp.write_packet server_socket packet
+        else () ;
+        Done
+    | _ ->
+        Kagemusha_lsp.write_packet server_socket packet ;
+        Done )
   | Packet.Batch_call calls ->
+      let redirected_batch, unredirected_items =
+        List.partition (fun x -> not (is_unredirected_batch_item x)) calls
+      in
       let new_calls, ids =
         List.map
           (function
@@ -77,11 +108,30 @@ let handle_client_packet ~server_socket ~id_translator ~init packet =
                 let new_request = translate_request ~id_translator r in
                 (`Request new_request, Some new_request.id)
             | `Notification n -> (`Notification n, None) )
-          calls
+          redirected_batch
         |> List.split
       in
-      Kagemusha_lsp.write_packet server_socket (Packet.Batch_call new_calls) ;
-      Wait (List.filter_map Fun.id ids)
+      (* Only forward non-shutdown/exit items to the server *)
+      if new_calls <> [] then
+        Kagemusha_lsp.write_packet server_socket (Packet.Batch_call new_calls) ;
+      (* Handle shutdown requests in the unredirected items locally *)
+      let shutdown_responses =
+        List.filter_map
+          (function
+            | `Request req when is_shutdown_request req ->
+                Some (Response.ok req.id `Null)
+            | _ -> None )
+          unredirected_items
+      in
+      if shutdown_responses <> [] then
+        (* Return immediate responses for shutdown requests *)
+        match shutdown_responses with
+        | [response] -> Immediate response
+        | responses ->
+            (* Multiple shutdown requests in batch - this is unusual but
+               handle it *)
+            Immediate (List.hd responses)
+      else Wait (List.filter_map Fun.id ids)
   | Packet.Response _ -> failwith "Unexpected Response from a client"
   | Packet.Batch_response _ ->
       failwith "Unexpected Batch_response from a client"
@@ -96,11 +146,13 @@ let run_gateway ~sw ~net ~server_sockaddr ~incoming_channel ~client_registry
   let server_socket = Net.connect ~sw net server_sockaddr in
   let init = Initializer.make () in
   let respond = Client_registry.send client_registry in
+  let initialized = Kcas.Loc.make false in
   let handle_client_message = function
     | Connect -> ()
     | Packet (packet, client_id) -> (
       match
-        handle_client_packet ~server_socket ~id_translator ~init packet
+        handle_client_packet ~server_socket ~id_translator ~initialized ~init
+          packet
       with
       | Immediate response -> respond client_id (`Response response)
       | Wait ids -> List.iter (Client_map.add client_map client_id) ids
