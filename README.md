@@ -37,8 +37,8 @@ using any of the standard SDKs for developing language servers.
 > transports such as TCP sockets and stdio, but this would be less suitable for
 > the intended use cases.
 
-*Ranmaru* acts as a reverse proxy that accepts multiple client connections over
-UNIX domain sockets and forwards them to a master LSP server. It handles shutdown
+*Ranmaru* acts as a gateway that accepts multiple client connections over UNIX
+domain sockets and forwards them to a master LSP server. It handles shutdown
 requests and exit notifications locally without forwarding them to the master
 server, ensuring the master server stays alive. It also survives client
 disconnections and manages JSON-RPC message ID translation to avoid conflicts
