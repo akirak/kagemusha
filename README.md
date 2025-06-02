@@ -94,3 +94,46 @@ Arguments:
   should not exist.
 - `SERVER` is the path to the UNIX domain socket of the master LSP server. It must
   exist before ranmaru starts.
+
+## Configuration examples for LSP clients
+
+### Emacs Eglot
+
+Eglot can connect to ranmaru via UNIX domain sockets. This configuration creates
+a reusable connection that survives across eglot connection shutdowns and/or
+Emacs restarts:
+
+``` emacs-lisp
+(defcustom my/ranmaru-socket-path "/tmp/ranmaru-client.sock"
+  "Path to the UNIX socket that ranmaru listens on for client connections."
+  :type 'string
+  :group 'eglot)
+
+(defvar my/ranmaru-socket-process nil
+  "The current socket process connection to ranmaru.")
+
+(defun my/ranmaru-eglot-contact (_interactive _project)
+  "Create or reuse a UNIX socket connection to ranmaru for Eglot.
+This function maintains a persistent connection that can be shared
+across multiple Eglot sessions."
+  (unless (and my/ranmaru-socket-process
+               (process-live-p my/ranmaru-socket-process))
+    (setq my/ranmaru-socket-process
+          (make-network-process :name "ranmaru-eglot"
+                                :buffer nil
+                                :family 'local
+                                :service my/ranmaru-socket-path
+                                :nowait t)))
+  (list 'eglot-lsp-server :process my/ranmaru-socket-process))
+
+;; Example configuration for a specific mode
+(add-to-list 'eglot-server-programs '(python-mode . my/ranmaru-eglot-contact))
+```
+
+Here are steps:
+
+1. Start your master LSP server with UNIX socket support (e.g., on
+   `/tmp/master-lsp.sock`)
+2. Start ranmaru: `ranmaru /tmp/ranmaru-client.sock /tmp/master-lsp.sock`
+3. Configure Eglot as shown above
+4. Use `M-x eglot` normally in your source files
