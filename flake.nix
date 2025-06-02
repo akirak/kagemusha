@@ -45,7 +45,9 @@
       );
     in
     {
-      packages = eachSystem (pkgs: {
+      packages = eachSystem (pkgs: rec {
+        default = ranmaru;
+
         ranmaru = pkgs.ocamlPackages.buildDunePackage {
           pname = "ranmaru";
           version = "0";
