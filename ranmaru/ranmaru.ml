@@ -54,7 +54,8 @@ let translate_request ~id_translator request =
   let new_id = Id_translator.translate id_translator request.id in
   {request with id= new_id}
 
-let handle_client_packet ~server_socket ~id_translator ~init packet =
+let handle_client_packet ~server_socket ~id_translator ~initialized ~init
+    packet =
   let open Jsonrpc in
   match packet with
   | Packet.Request req -> (
@@ -87,6 +88,11 @@ let handle_client_packet ~server_socket ~id_translator ~init packet =
     | "exit" ->
         (* Handle exit notification locally - don't forward to master server
            and don't kill ranmaru *)
+        Done
+    | "initialized" ->
+        if Kcas.Loc.compare_and_set initialized false true then
+          Kagemusha_lsp.write_packet server_socket packet
+        else () ;
         Done
     | _ ->
         Kagemusha_lsp.write_packet server_socket packet ;
@@ -140,11 +146,13 @@ let run_gateway ~sw ~net ~server_sockaddr ~incoming_channel ~client_registry
   let server_socket = Net.connect ~sw net server_sockaddr in
   let init = Initializer.make () in
   let respond = Client_registry.send client_registry in
+  let initialized = Kcas.Loc.make false in
   let handle_client_message = function
     | Connect -> ()
     | Packet (packet, client_id) -> (
       match
-        handle_client_packet ~server_socket ~id_translator ~init packet
+        handle_client_packet ~server_socket ~id_translator ~initialized ~init
+          packet
       with
       | Immediate response -> respond client_id (`Response response)
       | Wait ids -> List.iter (Client_map.add client_map client_id) ids
