@@ -1,5 +1,7 @@
 # ranmaru: An LSP Proxy to Keep the Master Alive
 
+[![Cachix Cache](https://img.shields.io/badge/cachix-akirak-blue.svg)](https://akirak.cachix.org)
+
 <img src="./assets/ranmaru.jpg" alt="Ranmaru Mori painting. Art by Utagawa Kuniyoshi (ca.1850) from the TAIHEIKI EIYUDEN" align="right" width="300">
 
 <!-- The above image is in the public domain. See https://en.wikipedia.org/wiki/Mori_Ranmaru#/media/File:Mori_Ranmaru-Utagawa_Kuniyoshi-ca.1850-_from_TAIHEIKI_EIYUDEN.jpg -->
