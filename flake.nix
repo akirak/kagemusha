@@ -73,6 +73,10 @@
             cmdliner
             yojson
           ];
+          checkInputs = with pkgs.ocamlPackages; [
+            alcotest
+          ];
+          doCheck = true;
         };
       });
 

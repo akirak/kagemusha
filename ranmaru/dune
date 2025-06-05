@@ -2,18 +2,7 @@
  (package ranmaru)
  (public_name ranmaru)
  (name main)
- (modules
-  main
-  kagemusha_lsp
-  ranmaru
-  import)
+ (modules main)
  (libraries
-   jsonrpc
-   lsp
-   kcas
-   kcas_data
-   yojson
-   str
-   eio
-   eio_main
+   ranmaru
    cmdliner))

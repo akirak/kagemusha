@@ -87,15 +87,36 @@ If you're not using Nix, use Dune to build the program from source.
 Accept connections from multiple clients and forward to a master server:
 
 ``` shell
-ranmaru CLIENT SERVER
+ranmaru --client CLIENT --master SERVER
 ```
 
-Arguments:
+### Command Line Options
 
-- `CLIENT` is the path to the UNIX domain socket that ranmaru listens on. It
-  should not exist.
-- `SERVER` is the path to the UNIX domain socket of the master LSP server. It must
-  exist before ranmaru starts.
+- `--client CLIENT` - Path to the UNIX domain socket that ranmaru listens on. It should not exist.
+- `--master SERVER` - Path to the UNIX domain socket of the master LSP server. It must exist before ranmaru starts.
+
+### Environment Variables
+
+You can also configure ranmaru using environment variables:
+
+- `RANMARU_CLIENT_SOCKET` - UNIX socket path to listen to (equivalent to `--client`)
+- `RANMARU_MASTER_SOCKET` - UNIX socket path of the upstream server (equivalent to `--master`)
+
+Command line options take precedence over environment variables.
+
+### Examples
+
+Using command line options:
+``` shell
+ranmaru --client /tmp/ranmaru-client.sock --master /tmp/master-lsp.sock
+```
+
+Using environment variables:
+``` shell
+export RANMARU_CLIENT_SOCKET=/tmp/ranmaru-client.sock
+export RANMARU_MASTER_SOCKET=/tmp/master-lsp.sock
+ranmaru
+```
 
 ## Configuration examples for LSP clients
 

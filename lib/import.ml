@@ -123,7 +123,7 @@ module Initializer = struct
                 ~params:(to_jsonrpc_params custom_params)
                 ~id ~method_:"initialize" ()
             in
-            Kagemusha_lsp.write_packet server_socket
+            Lsp_utils.write_packet server_socket
               (Jsonrpc.Packet.Request request) ) ;
         while Option.is_none (Kcas.Loc.get result_loc) do
           Eio.Condition.await init_done mutex

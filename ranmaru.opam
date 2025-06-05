@@ -11,6 +11,7 @@ depends: [
   "kcas_data"
   "cmdliner"
   "yojson"
+  "alcotest" {with-test}
   "odoc" {with-doc}
 ]
 build: [
