@@ -29,7 +29,7 @@ let handle_client_incoming_messages ~incoming_channel ~client_socket
     Eio.Fiber.yield () ; loop ()
   in
   Fiber.both loop (fun () ->
-      Kagemusha_lsp.Reader.to_stream packet_stream client_socket )
+      Lsp_utils.Reader.to_stream packet_stream client_socket )
 
 let handle_client_responses ~stream ~client_socket =
   let rec loop () =
@@ -38,7 +38,7 @@ let handle_client_responses ~stream ~client_socket =
       | `Response response -> Jsonrpc.Packet.Response response
       | `Batch_response batch -> Jsonrpc.Packet.Batch_response batch
     in
-    Kagemusha_lsp.write_packet client_socket packet ;
+    Lsp_utils.write_packet client_socket packet ;
     Eio.Fiber.yield () ;
     loop ()
   in
@@ -81,7 +81,7 @@ let handle_client_packet ~server_socket ~id_translator ~initialized ~init
         Immediate response
     | _ ->
         let new_request = translate_request ~id_translator req in
-        Kagemusha_lsp.write_packet server_socket (Packet.Request new_request) ;
+        Lsp_utils.write_packet server_socket (Packet.Request new_request) ;
         Wait [new_request.id] )
   | Packet.Notification notification -> (
     match notification.method_ with
@@ -91,11 +91,11 @@ let handle_client_packet ~server_socket ~id_translator ~initialized ~init
         Done
     | "initialized" ->
         if Kcas.Loc.compare_and_set initialized false true then
-          Kagemusha_lsp.write_packet server_socket packet
+          Lsp_utils.write_packet server_socket packet
         else () ;
         Done
     | _ ->
-        Kagemusha_lsp.write_packet server_socket packet ;
+        Lsp_utils.write_packet server_socket packet ;
         Done )
   | Packet.Batch_call calls ->
       let redirected_batch, unredirected_items =
@@ -113,7 +113,7 @@ let handle_client_packet ~server_socket ~id_translator ~initialized ~init
       in
       (* Only forward non-shutdown/exit items to the server *)
       if new_calls <> [] then
-        Kagemusha_lsp.write_packet server_socket (Packet.Batch_call new_calls) ;
+        Lsp_utils.write_packet server_socket (Packet.Batch_call new_calls) ;
       (* Handle shutdown requests in the unredirected items locally *)
       let shutdown_responses =
         List.filter_map
@@ -206,8 +206,7 @@ let run_gateway ~sw ~net ~server_sockaddr ~incoming_channel ~client_registry
     ; (fun () ->
         handle_client_message message ;
         client_incoming_loop () )
-    ; (fun () -> Kagemusha_lsp.Reader.to_stream response_stream server_socket)
-    ]
+    ; (fun () -> Lsp_utils.Reader.to_stream response_stream server_socket) ]
 
 let run_proxy ~client_sockaddr ~server_sockaddr =
   let open Eio in

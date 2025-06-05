@@ -1,0 +1,16 @@
+(library
+ (public_name ranmaru)
+ (name ranmaru)
+ (modules
+   ranmaru
+   lsp_utils
+   import)
+ (libraries
+   jsonrpc
+   lsp
+   kcas
+   kcas_data
+   yojson
+   str
+   eio
+   eio_main))

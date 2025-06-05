@@ -15,4 +15,5 @@
   kcas
   kcas_data
   cmdliner
-  yojson))
+  yojson
+  (alcotest :with-test)))

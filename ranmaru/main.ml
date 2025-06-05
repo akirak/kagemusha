@@ -7,7 +7,10 @@ let client_socket_path =
   let env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
   Term.(
     const to_unix
-    $ Arg.(required & opt (some string) None & info ["client"] ~env ~docv:"CLIENT" ~doc) )
+    $ Arg.(
+        required
+        & opt (some string) None
+        & info ["client"] ~env ~docv:"CLIENT" ~doc ) )
 
 let server_socket_path =
   let doc = "UNIX socket path of the upstream server" in

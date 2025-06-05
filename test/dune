@@ -1,0 +1,8 @@
+(test
+ (name test_main)
+ (modules test_main)
+ (libraries
+   alcotest
+   ranmaru
+   cmdliner
+   unix))
