@@ -4,18 +4,20 @@ let to_unix path = `Unix path
 
 let client_socket_path =
   let doc = "UNIX socket path to listen to" in
+  let env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
   Term.(
     const to_unix
-    $ Arg.(required & opt (some string) None & info ["client"] ~docv:"CLIENT" ~doc) )
+    $ Arg.(required & opt (some string) None & info ["client"] ~env ~docv:"CLIENT" ~doc) )
 
 let server_socket_path =
   let doc = "UNIX socket path of the upstream server" in
+  let env = Cmd.Env.info "RANMARU_MASTER_SOCKET" ~doc in
   Term.(
     const to_unix
     $ Arg.(
         required
         & opt (some non_dir_file) None
-        & info ["master"] ~docv:"SERVER" ~doc ) )
+        & info ["master"] ~env ~docv:"SERVER" ~doc ) )
 
 let () =
   Printexc.record_backtrace true ;
