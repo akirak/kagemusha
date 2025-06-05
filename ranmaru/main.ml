@@ -6,7 +6,7 @@ let client_socket_path =
   let doc = "UNIX socket path to listen to" in
   Term.(
     const to_unix
-    $ Arg.(required & pos 0 (some string) None & info [] ~docv:"CLIENT" ~doc) )
+    $ Arg.(required & opt (some string) None & info ["client"] ~docv:"CLIENT" ~doc) )
 
 let server_socket_path =
   let doc = "UNIX socket path of the upstream server" in
@@ -14,8 +14,8 @@ let server_socket_path =
     const to_unix
     $ Arg.(
         required
-        & pos 1 (some non_dir_file) None
-        & info [] ~docv:"SERVER" ~doc ) )
+        & opt (some non_dir_file) None
+        & info ["master"] ~docv:"SERVER" ~doc ) )
 
 let () =
   Printexc.record_backtrace true ;
