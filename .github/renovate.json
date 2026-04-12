@@ -49,8 +49,5 @@
   },
   "github-actions": {
     "enabled": true
-  },
-  "nix": {
-    "enabled": true
   }
 }
