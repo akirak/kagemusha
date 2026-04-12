@@ -14,7 +14,7 @@ let test_cmdline_parsing () =
   let test_master_path = ref None in
   let client_socket_path =
     let doc = "UNIX socket path to listen to" in
-    let env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
+    let client_env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
     Term.(
       const (fun path ->
           test_client_path := Some path ;
@@ -22,11 +22,11 @@ let test_cmdline_parsing () =
       $ Arg.(
           required
           & opt (some string) None
-          & info ["client"] ~env ~docv:"CLIENT" ~doc ) )
+          & info ["client"] ~env:client_env ~docv:"CLIENT" ~doc ) )
   in
   let server_socket_path =
     let doc = "UNIX socket path of the upstream server" in
-    let env = Cmd.Env.info "RANMARU_MASTER_SOCKET" ~doc in
+    let master_env = Cmd.Env.info "RANMARU_MASTER_SOCKET" ~doc in
     Term.(
       const (fun path ->
           test_master_path := Some path ;
@@ -34,7 +34,7 @@ let test_cmdline_parsing () =
       $ Arg.(
           required
           & opt (some string) None
-          & info ["master"] ~env ~docv:"SERVER" ~doc ) )
+          & info ["master"] ~env:master_env ~docv:"SERVER" ~doc ) )
   in
   let test_term =
     Term.(const (fun _ _ -> `Ok ()) $ client_socket_path $ server_socket_path)
@@ -59,7 +59,7 @@ let test_env_vars () =
   let test_master_path = ref None in
   let client_socket_path =
     let doc = "UNIX socket path to listen to" in
-    let env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
+    let client_env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
     Term.(
       const (fun path ->
           test_client_path := Some path ;
@@ -67,11 +67,11 @@ let test_env_vars () =
       $ Arg.(
           required
           & opt (some string) None
-          & info ["client"] ~env ~docv:"CLIENT" ~doc ) )
+          & info ["client"] ~env:client_env ~docv:"CLIENT" ~doc ) )
   in
   let server_socket_path =
     let doc = "UNIX socket path of the upstream server" in
-    let env = Cmd.Env.info "RANMARU_MASTER_SOCKET" ~doc in
+    let master_env = Cmd.Env.info "RANMARU_MASTER_SOCKET" ~doc in
     Term.(
       const (fun path ->
           test_master_path := Some path ;
@@ -79,7 +79,7 @@ let test_env_vars () =
       $ Arg.(
           required
           & opt (some string) None
-          & info ["master"] ~env ~docv:"SERVER" ~doc ) )
+          & info ["master"] ~env:master_env ~docv:"SERVER" ~doc ) )
   in
   let test_term =
     Term.(const (fun _ _ -> `Ok ()) $ client_socket_path $ server_socket_path)
