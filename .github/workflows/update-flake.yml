@@ -12,5 +12,10 @@ concurrency:
 jobs:
   update:
     uses: akirak/akirak/.github/workflows/update-flake.yml@master
+
+    permissions:
+      contents: write
+      pull-requests: write
+
     secrets:
       github-token: ${{ secrets.GITHUB_TOKEN }}
