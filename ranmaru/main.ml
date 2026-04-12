@@ -4,13 +4,13 @@ let to_unix path = `Unix path
 
 let client_socket_path =
   let doc = "UNIX socket path to listen to" in
-  let env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
+  let client_env = Cmd.Env.info "RANMARU_CLIENT_SOCKET" ~doc in
   Term.(
     const to_unix
     $ Arg.(
         required
         & opt (some string) None
-        & info ["client"] ~env ~docv:"CLIENT" ~doc ) )
+        & info ["client"] ~env:client_env ~docv:"CLIENT" ~doc ) )
 
 let server_socket_path =
   let doc = "UNIX socket path of the upstream server" in
